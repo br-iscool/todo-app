@@ -1,11 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Home() {
     const [items, setItems] = useState<{ id: number; content: string; done: boolean }[]>([]);
     const [input, setInput] = useState("");
-    
+    const [editId, setEditId] = useState<number | null>(null);
+    const [editText, setEditText] = useState("");
+    const editInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        if (editId !== null) {
+            editInputRef.current?.focus();
+            const el = editInputRef.current;
+            if (el) {
+                const val = el.value;
+                el.value = "";
+                el.value = val;
+            }
+        }
+    }, [editId]);
+
     const addItem = () => {
         if (input.trim() === "") {
             return;
@@ -17,6 +32,17 @@ export default function Home() {
 
     const deleteItem = (id: number) => {
         setItems(items.filter(item => item.id !== id));
+    }
+
+    const confirmEdit = (id: number) => {
+        setItems(items.map(it => it.id === id ? { ...it, content: editText.trim() } : it));
+        setEditId(null);
+        setEditText("");
+    }
+
+    const cancelEdit = () => {
+        setEditId(null);
+        setEditText("");
     }
 
     return (
@@ -31,15 +57,41 @@ export default function Home() {
                                 className="scroll rounded-xl"
                             >
                                 <ul className="space-y-3">
-                                    {items.map(items => (
+                                    {items.map(item => (
                                         <li
-                                            key={items.id}
+                                            key={item.id}
                                             className="flex items-center justify-between px-5 bg-gray-950/50 rounded-xl w-full min-h-20"
                                         >
-                                            <span className="text-gray-200">{ items.content }</span>
-                                            <button 
-                                                onClick={() => deleteItem(items.id)}
-                                                className="ml-4"
+                                            {editId === item.id ? (
+                                                <input
+                                                    ref={editInputRef}
+                                                    value={editText}
+                                                    onChange={e => setEditText(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === "Enter") {
+                                                            confirmEdit(item.id);
+                                                        } else if (e.key === "Escape") {
+                                                            cancelEdit();
+                                                        }
+                                                    }}
+                                                    onBlur={() => cancelEdit()}
+                                                    className="flex-1 p-3 rounded-md bg-gray-800 text-gray-50 outline-none"
+                                                />
+                                            ) : (
+                                                <span
+                                                    className="text-gray-200 cursor-pointer"
+                                                    onClick={() => {
+                                                        setEditId(item.id);
+                                                        setEditText(item.content);
+                                                    }}
+                                                >
+                                                    {item.content}
+                                                </span>
+                                            )}
+
+                                            <button
+                                                onClick={() => deleteItem(item.id)}
+                                                className="ml-4 cursor-pointer"
                                             >
                                                 ❌
                                             </button>
